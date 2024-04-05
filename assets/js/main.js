@@ -279,45 +279,56 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 function isMobileDevice() {
-    // Проверяем строку агента пользователя на наличие ключевых слов, характерных для мобильных устройств
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }
-  
-  function checkAndApplyFullscreen() {
-    if (!isMobileDevice()) {
-      // Если устройство не является мобильным, не выполняем никаких действий
-      return;
+}
+
+function requestFullscreen(element) {
+    if (element.requestFullscreen) {
+        element.requestFullscreen();
+    } else if (element.mozRequestFullScreen) { /* Firefox */
+        element.mozRequestFullScreen();
+    } else if (element.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+        element.webkitRequestFullscreen();
+    } else if (element.msRequestFullscreen) { /* IE/Edge */
+        element.msRequestFullscreen();
     }
-  
+}
+
+function exitFullscreen() {
+    if (document.exitFullscreen) {
+        document.exitFullscreen();
+    } else if (document.mozCancelFullScreen) { /* Firefox */
+        document.mozCancelFullScreen();
+    } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+        document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) { /* IE/Edge */
+        document.msExitFullscreen();
+    }
+}
+
+function checkAndApplyFullscreen() {
+    if (!isMobileDevice() || !document.fullscreenEnabled) {
+        return;
+    }
+
     var player = document.getElementById('player_iframe');
+    
+    // Для iOS лучше использовать событие 'orientationchange'
+    // и проверять orientation.type, но здесь мы оставляем ваш подход для простоты
     if (window.innerWidth > window.innerHeight) {
-      if (!document.fullscreenElement) {
-        if (player.requestFullscreen) {
-          player.requestFullscreen();
-        } else if (player.mozRequestFullScreen) {
-          player.mozRequestFullScreen();
-        } else if (player.webkitRequestFullscreen) {
-          player.webkitRequestFullscreen();
-        } else if (player.msRequestFullscreen) {
-          player.msRequestFullscreen();
+        if (!document.fullscreenElement && player.webkitEnterFullscreen) {
+            player.webkitEnterFullscreen(); // для <video> элементов в iOS
+        } else {
+            requestFullscreen(player); // для остальных элементов и браузеров
         }
-      }
     } else {
-      if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen();
+        if (document.fullscreenElement) {
+            exitFullscreen();
         }
-      }
     }
-  }
-  
-  // Установка интервала для регулярной проверки размеров окна и применения полноэкранного режима при необходимости
-  if (isMobileDevice()) {
-    setInterval(checkAndApplyFullscreen, 100); // Проверка каждую секунду
-  }
+}
+
+if (isMobileDevice()) {
+    // Событие 'resize' может быть более предпочтительным, но 'orientationchange' лучше для iOS
+    window.addEventListener('orientationchange', checkAndApplyFullscreen);
+}
